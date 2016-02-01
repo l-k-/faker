@@ -1,10 +1,12 @@
 # coding=utf-8
 
+import math
 import re
 import string
 
 from faker.generator import random
 from faker.utils.distribution import choice_distribution
+import faker.utils.stats as stats
 
 
 _re_hash = re.compile(r'#')
@@ -32,6 +34,63 @@ class BaseProvider(object):
         :returns: random integer between min and max
         """
         return random.randint(min, max)
+
+    @classmethod
+    def random_int_unique(cls, min=0, max=9999, n=2):
+        """
+        Generate n unique random integers uniformly distributed
+        in the specified range.
+        """
+
+        if (max - min + 1) < n:
+            raise Exception('Not possible to generate {0} unique numbers in the range from {1} to {2}'.format(
+                            n, min, max))
+
+        if n < 2:
+            return cls.random_int(min=min, max=max, variance=variance, mean=mean)
+
+        return stats.reservoir_sampling(iter(range(min, max)), n)
+
+    @classmethod
+    def random_normal(cls, min=0, max=9999, mean=0, variance=1, n=1):
+        """
+        Draw an random number from a truncated normal distribution.
+        """
+        return stats.RandomNormalVar(min, max, mean, variance).get(n)
+
+    @classmethod
+    def random_normal_int(cls, min=0, max=9999, mean=0, variance=1, n=1):
+        """
+        Draw an integer from a truncated normal distribution.
+        """
+        return stats.RandomNormalVar(min, max, mean, variance).get_int(n)
+
+    @classmethod
+    def random_digits(cls, digits=1):
+        """
+        Return a random string of digits of specified length.
+        """
+        res = str(random.randint(0, pow(10, digits) - 1))
+        n_zeros = digits - len(res)
+        return '0' * n_zeros + res
+
+    @classmethod
+    def random_digits_unique(cls, digits=1, n=2):
+        """
+        Generate n unique random strings of digits of specified length.
+        """
+
+        if n < 2:
+            return cls.random_digits(digits)
+
+        res = cls.random_int_unique(min=0, max = pow(10, digits) - 1, n=n)
+
+        # if the number has fewer digits than needed, add leading zeros
+        for i in range(n):
+            res[i] = str(res[i])
+            n_zeros = digits - len(res[i])
+            res[i] = '0' * n_zeros + res[i]
+        return res
 
     @classmethod
     def random_digit(cls):

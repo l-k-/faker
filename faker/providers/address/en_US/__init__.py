@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import csv
 
 from ..en import Provider as AddressProvider
 from faker.generator import random
@@ -6,13 +7,13 @@ from faker.generator import random
 
 class Provider(AddressProvider):
     city_prefixes = ('North', 'East', 'West', 'South', 'New', 'Lake', 'Port')
-    
+
     city_suffixes = (
         'town', 'ton', 'land', 'ville', 'berg', 'burgh', 'borough', 'bury', 'view', 'port', 'mouth', 'stad', 'furt',
         'chester', 'mouth', 'fort', 'haven', 'side', 'shire')
-    
+
     building_number_formats = ('#####', '####', '###')
-    
+
     street_suffixes = (
         'Alley', 'Avenue', 'Branch', 'Bridge', 'Brook', 'Brooks', 'Burg', 'Burgs', 'Bypass', 'Camp', 'Canyon', 'Cape',
         'Causeway', 'Center', 'Centers', 'Circle', 'Circles', 'Cliff', 'Cliffs', 'Club', 'Common', 'Corner', 'Corners',
@@ -44,9 +45,9 @@ class Provider(AddressProvider):
         'Viaduct',
         'View', 'Views', 'Village', 'Village', 'Villages', 'Ville', 'Vista', 'Vista', 'Walk', 'Walks', 'Wall', 'Way',
         'Ways', 'Well', 'Wells')
-    
+
     postcode_formats = ('#####', '#####-####')
-    
+
     states = (
         'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida',
         'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine',
@@ -57,7 +58,7 @@ class Provider(AddressProvider):
         'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
         'Virginia',
         'Washington', 'West Virginia', 'Wisconsin', 'Wyoming' )
-    
+
     states_abbr = (
         'AL', 'AK', 'AS', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FM', 'FL', 'GA', 'GU', 'HI', 'ID', 'IL', 'IN',
         'IA',
@@ -74,7 +75,7 @@ class Provider(AddressProvider):
     military_apo_format = ("PSC ####, Box ####")
 
     military_dpo_format = ("Unit #### Box ####")
-    
+
     city_formats = (
         '{{city_prefix}} {{first_name}}{{city_suffix}}',
         '{{city_prefix}} {{first_name}}',
@@ -119,16 +120,49 @@ class Provider(AddressProvider):
         return cls.random_element(cls.states)
 
     @classmethod
-    def state_abbr(cls):
-        return cls.random_element(cls.states_abbr)
+    def state_abbr(cls, zipcode=None):
+        if not zipcode:
+            return cls.random_element(cls.states_abbr)
+        else:
+            with open('zip_state.csv', mode='r') as f:
+                reader = csv.reader(f)
+                d = {str(row[0]).zfill(3): row[1] for row in reader}
+            state = d[str(zipcode)[0:3]]
+            if len(state) > 0:
+                return state
+            raise Exception('Invalid zipcode "{0}"'.format(zipcode))
 
     @classmethod
-    def zipcode(cls):
-        return "%05d" % random.randint(501, 99950)
+    def zipcode(cls, state=None, n=1):
+        if not state:
+            if n == 1:
+                return "%05d" % random.randint(501, 99950)
+            ["%05d" % random.randint(501, 99950) for _ in range(n)]
+        else:
+            if n == 1:
+                with open('zip_state.csv', mode='r') as f:
+                    reader = csv.reader(f)
+                    codes = [row[0] for row in reader if row[1] == state]
+                if not len(codes):
+                    raise Exception('Invalid state "{0}"'.format(state))
+                # the zip code table only contains the first 3 digits of the code,
+                # so we'll make up the remaining two
+                return random.choice(codes).zfill(3) + cls.random_digits(2)
+
+            # if n>1, state will contain an array of states
+            with open('zip_state.csv', mode='r') as f:
+                codes = {s: [] for s in state}
+
+                reader = csv.reader(f)
+                for row in reader:
+                    if row[1] in state:
+                        codes[row[1]].append(row[0])
+
+                return [random.choice(codes[s]).zfill(3) + cls.random_digits(2) for s in state]
 
     @classmethod
-    def zipcode_plus4(cls):
-        return "%s-%04d" % (cls.zipcode(), random.randint(1, 9999))
+    def zipcode_plus4(cls, state=None):
+        return "%s-%04d" % (cls.zipcode(state), random.randint(1, 9999))
 
     @classmethod
     def military_ship(cls):
@@ -157,7 +191,7 @@ class Provider(AddressProvider):
         :example 'Unit 3333 Box 9342'
         """
         return cls.numerify(cls.military_dpo_format)
- 
+
 
     # Aliases
     @classmethod

@@ -14,7 +14,7 @@ from faker.utils.loading import list_module
 class Factory(object):
 
     @classmethod
-    def create(cls, locale=None, providers=None, generator=None, includes=None, **config):
+    def create(cls, locale=None, providers=None, generator=None, includes=None, num=1, **config):
         if includes is None:
             includes = []
 

@@ -3,9 +3,15 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
+import argparse
 import os
 import sys
-import argparse
+
+from yaml import load
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
 
 from faker import Faker, Factory, documentor
 from faker import VERSION
@@ -56,7 +62,7 @@ def print_provider(doc, provider, formatters, excludes=None, output=None):
 
 
 def print_doc(provider_or_field=None,
-              args=None, lang=DEFAULT_LOCALE, output=None, includes=None):
+              args=None, lang=DEFAULT_LOCALE, output=None, includes=None, definition=None, num=1):
     args = args or []
     output = output or sys.stdout
     fake = Faker(locale=lang, includes=includes)
@@ -77,12 +83,18 @@ def print_doc(provider_or_field=None,
                 doc.get_provider_formatters(fake.get_providers()[0]),
                 output=output)
         else:
-            try:
-                print(fake.format(provider_or_field, *args), end='', file=output)
-            except AttributeError:
-                raise ValueError('No faker found for "{0}({1})"'.format(
-                    provider_or_field, args))
-
+            if definition:
+                try:
+                    print(fake.format('profile', definition=definition, num=num, *args), end='', file=output)
+                except AttributeError:
+                    raise ValueError('No faker found for "{0}({1})"'.format(
+                        provider_or_field, args))
+            else:
+                try:
+                    print(fake.format(provider_or_field, *args), end='', file=output)
+                except AttributeError:
+                    raise ValueError('No faker found for "{0}({1})"'.format(
+                        provider_or_field, args))
     else:
         doc = documentor.Documentor(fake)
 
@@ -145,27 +157,48 @@ class Command(object):
         parser.add_argument('-s', '--sep',
                             default='\n')
 
+        parser.add_argument('-d', '--definition')
+
         parser.add_argument('-i', '--include', default=META_PROVIDERS_MODULES, nargs='*')
 
         parser.add_argument('fake', action='store', nargs='*')
 
         arguments = parser.parse_args(self.argv[1:])
 
-        for i in range(arguments.repeat):
+        if arguments.definition:
+            fileobj = open(arguments.definition)
+            definition = load(fileobj, Loader=Loader)
+            fileobj.close()
+        else:
+            definition = None
 
-            fake = arguments.fake[0] if len(arguments.fake) else None
+        fake = arguments.fake[0] if len(arguments.fake) else None
+        # command line arguments override the file definition
+        if fake and fake != 'profile':
+            definition = None
 
-            print_doc(fake,
-                      arguments.fake[1:],
+        if definition:
+            print_doc(provider_or_field='profile',
+                      args=arguments.fake[1:],
                       lang=arguments.lang,
                       output=arguments.o,
-                      includes=arguments.include
+                      includes=arguments.include,
+                      definition=definition,
+                      num=arguments.repeat
                       )
-            print(arguments.sep, file=arguments.o)
+        else:
+            for i in range(arguments.repeat):
+                print_doc(provider_or_field=fake,
+                          args=arguments.fake[1:],
+                          lang=arguments.lang,
+                          output=arguments.o,
+                          includes=arguments.include
+                          )
+                print(arguments.sep, file=arguments.o)
 
-            if not fake:
-                # repeat not supported for all docs
-                break
+                if not fake:
+                    # repeat not supported for all docs
+                    break
 
 
 def execute_from_command_line(argv=None):

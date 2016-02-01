@@ -56,6 +56,7 @@ setup(
     install_requires=[
         "python-dateutil>=2.4",
         "six",
+        "PyYAML==3.11"
     ],
     extras_require={
         ':python_version=="2.6"': ['importlib'],

@@ -1,0 +1,120 @@
+# For simplicity, we will assume one file per top-level entity.
+# Definition of a Patient entity, represented as a document with nested fields.
+mrn:
+    # Data type of the field. A generator must exist to satisfy this type otherwise
+    # it is an error.
+    type: mrn
+
+    # Type-specific options, for example a prefix to give to the generated value.
+    options:
+        prefix: MRN_
+
+    # Values in this field must be unique for all records with teh same context value(s)  
+    unique: true
+
+    # For fields that may have NULL or empty values, what is the frequency?
+    sparsity: 30
+
+    # Denotes whether multiple values are allowed for this field. This would result
+    # in the field being an array.
+    multiple: false
+
+first_name:
+    type: first_name
+    context: 
+        gender: gender
+
+last_name:
+    type: last_name
+
+# Gender is limited to two choices, but may be null occurring 10% of the time.
+gender:
+    type: gender
+    sparsity: 0
+
+chocolate_flavor:
+    choices:
+        dark: 0.2
+        milk: 0.7
+        white: 0.1
+    sparsity: 10
+
+icecream_flavor:
+    choices:
+        - vanila
+        - chocolate
+        - strawberry
+    sparsity: 50
+
+# Address is an object that has nested fields.
+address:
+    # Nested fields in this field. For a document-based export this implies
+    # `address` will be an object type.
+    fields:
+        state:
+            choices:
+                - PA
+                - NJ
+                - NY
+
+        zipcode:
+            type: zipcode
+            # Specify context for this field. Some generators may provide output
+            # based on the context. In this case, the zipcode generator will receive
+            # the value generated for the `state` field and produce a value that
+            # realistically matches the constraints. In this case a zipcode that
+            # actually exists in the state.
+            context:
+                state: address.state
+
+        street:
+            type: street_address
+
+diagnoses:
+    type: icd9
+
+    sparsity: 20
+
+    multiple:
+        duplicates: false
+        min: 0
+        max: 20
+        variance: 5
+        mean: 10
+
+    context:
+        current_age: age
+        gender: gender
+
+# Example of a field that is fixed a predefined value.
+organization:
+    type: company
+
+    constant: "CHOP"
+    sparsity: 25
+
+age:
+    type: age
+    unique: false
+    options:
+        minor: false
+
+birthdate:
+    type: birthdate
+    context:
+        age: age
+
+# Race and Hispanic Origin
+# http://www.census.gov/quickfacts/table/PST045215/00
+# (data for July 1, 2014)
+race:
+    choices:
+        White, not Hispanic or Latino: 62.1
+        Hispanic or Latino: 17.4
+        Black or African American: 13.2
+        Asian: 5.4
+        Two or More Races: 2.5
+        American Indian and Alaska Native: 1.2
+        Native Hawaiian and Other Pacific Islander: 0.2
+
+
