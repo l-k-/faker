@@ -28,9 +28,9 @@ class Provider(BaseProvider):
     def first_name(self, gender=None):
         if gender:
             if gender == "F":
-                return self.random_element(self.first_names_female)
+                return self.first_name_female()
             else:
-                return self.random_element(self.first_names_male)
+                return self.first_name_male()
 
         return self.random_element(self.first_names)
 

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import csv
+from collections import defaultdict
 
 from ..en import Provider as AddressProvider
 from faker.generator import random
@@ -68,6 +69,15 @@ class Provider(AddressProvider):
         'WV',
         'WI', 'WY')
 
+    state_abbr_to_zipcodes = defaultdict(list)
+    zip_to_state_abbr = {}
+    with open('faker/providers/address/en_US/zip_state.csv', mode='r') as f:
+        reader = csv.reader(f)
+
+        for row in reader:
+            state_abbr_to_zipcodes[row[1]].append(str(row[0]).zfill(3))
+            zip_to_state_abbr[str(row[0]).zfill(3)] = row[1]
+
     military_state_abbr = ('AE', 'AA', 'AP')
 
     military_ship_prefix = ('USS', 'USNS', 'USNV', 'USCGC')
@@ -124,10 +134,7 @@ class Provider(AddressProvider):
         if not zipcode:
             return cls.random_element(cls.states_abbr)
         else:
-            with open('zip_state.csv', mode='r') as f:
-                reader = csv.reader(f)
-                d = {str(row[0]).zfill(3): row[1] for row in reader}
-            state = d[str(zipcode)[0:3]]
+            state = cls.zip_to_state_abbr[str(zipcode)[0:3]]
             if len(state) > 0:
                 return state
             raise Exception('Invalid zipcode "{0}"'.format(zipcode))
@@ -140,25 +147,15 @@ class Provider(AddressProvider):
             ["%05d" % random.randint(501, 99950) for _ in range(n)]
         else:
             if n == 1:
-                with open('zip_state.csv', mode='r') as f:
-                    reader = csv.reader(f)
-                    codes = [row[0] for row in reader if row[1] == state]
-                if not len(codes):
-                    raise Exception('Invalid state "{0}"'.format(state))
                 # the zip code table only contains the first 3 digits of the code,
                 # so we'll make up the remaining two
-                return random.choice(codes).zfill(3) + cls.random_digits(2)
+                try:
+                    return random.choice(cls.state_abbr_to_zipcodes[state]) + cls.random_digits(2)
+                except:
+                    raise Exception('Invalid state "{0}"'.format(state))
 
             # if n>1, state will contain an array of states
-            with open('zip_state.csv', mode='r') as f:
-                codes = {s: [] for s in state}
-
-                reader = csv.reader(f)
-                for row in reader:
-                    if row[1] in state:
-                        codes[row[1]].append(row[0])
-
-                return [random.choice(codes[s]).zfill(3) + cls.random_digits(2) for s in state]
+            return [random.choice(cls.state_abbr_to_zipcodes[s]) + cls.random_digits(2) for s in state]
 
     @classmethod
     def zipcode_plus4(cls, state=None):

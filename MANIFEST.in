@@ -1,4 +1,4 @@
 include *.rst
 include *.md
 include *.txt
-include *.csv
+global-include faker *.csv

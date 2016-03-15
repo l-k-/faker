@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import csv
+
 from ..en import Provider as PersonProvider
 from faker.utils.distribution import choice_distribution
 from faker.generator import random
@@ -25,6 +27,36 @@ class Provider(PersonProvider):
     age_freq_US = [6.5, 6.6, 6.7, 6.9, 7.1, 6.8, 6.6, 6.2, 6.7, 7.0,
                    7.2, 6.6, 5.7, 4.4, 3.2, 2.4, 1.9, 1.5, 0.1]
 
+    last_names_US = []
+    last_name_freq_US = []
+
+    with open('faker/providers/person/en_US/1990_census_surnames.csv', mode='r') as f:
+        reader = csv.reader(f)
+
+        for row in reader:
+            last_names_US.append(row[0].title())
+            last_name_freq_US.append(float(row[1]))
+
+    first_names_female_US = []
+    first_names_female_freq_US = []
+
+    with open('faker/providers/person/en_US/1990_census_first_female.csv', mode='r') as f:
+        reader = csv.reader(f)
+
+        for row in reader:
+            first_names_female_US.append(row[0].title())
+            first_names_female_freq_US.append(float(row[1]))
+
+    first_names_male_US = []
+    first_names_male_freq_US = []
+
+    with open('faker/providers/person/en_US/1990_census_first_male.csv', mode='r') as f:
+        reader = csv.reader(f)
+
+        for row in reader:
+            first_names_male_US.append(row[0].title())
+            first_names_male_freq_US.append(float(row[1]))
+
     @classmethod
     def age(cls, minor=False):
         if minor:
@@ -33,3 +65,15 @@ class Provider(PersonProvider):
 
         random_range = choice_distribution(cls.age_ranges_US, cls.age_freq_US)
         return random.randint(*random_range)
+
+    @classmethod
+    def last_name(cls):
+        return choice_distribution(cls.last_names_US, cls.last_name_freq_US)
+
+    @classmethod
+    def first_name_female(cls):
+        return choice_distribution(cls.first_names_female_US, cls.first_names_female_freq_US)
+
+    @classmethod
+    def first_name_male(cls):
+        return choice_distribution(cls.first_names_male_US, cls.first_names_male_freq_US)
